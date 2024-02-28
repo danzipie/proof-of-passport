@@ -4,6 +4,8 @@ Proof of Passport circuits verify signatures of passport-emitting authorities.
 
 🚧 under heavy development 🚧
 
+`sha1` circuits origin from https://github.com/dmpierre/sha1-circom.git
+
 #### Requirements
 
 Install `circom` and `nodejs v18`
