@@ -24,6 +24,13 @@ cd ..
 
 echo "compiling circuit"
 circom circuits/proof_of_passport.circom -l node_modules --r1cs --wasm --output build
+if [ $? -eq 0 ]
+then
+  echo "Success"
+else
+  echo "Failure compiling circuit"
+  exit 1
+fi
 
 mkdir -p ../app/ark-circom-passport/passport/
 cp build/proof_of_passport.r1cs ../app/ark-circom-passport/passport/
