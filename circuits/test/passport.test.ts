@@ -5,7 +5,7 @@ import { hash, toUnsignedByte, arraysAreEqual, bytesToBigDecimal, formatMrz, spl
 import { groth16 } from 'snarkjs'
 import { getPassportData } from '../../common/src/utils/passportData'
 import { MAX_DATAHASHES_LEN, attributeToPosition } from '../../common/src/constants/constants'
-import { sha256Pad } from '@zk-email/helpers'
+import { shaPad } from '../../common/src/utils/shaPad'
 import path from "path";
 const fs = require('fs');
 const wasm_tester = require("circom_tester").wasm;
@@ -20,21 +20,24 @@ describe('Circuit tests', function () {
   let inputs: any;
 
   this.beforeAll(async () => {
-    const passportData = getPassportData();
+    const signatureAlgorithm = 'SHA256withRSA'
+    const digestLength = 32;
+    const passportData = getPassportData(signatureAlgorithm);
 
     const formattedMrz = formatMrz(passportData.mrz);
 
-    const concatenatedDataHashesHashDigest = hash(passportData.dataGroupHashes);
+    const concatenatedDataHashesHashDigest = hash(signatureAlgorithm, passportData.dataGroupHashes);
     console.log('concatenatedDataHashesHashDigest', concatenatedDataHashesHashDigest);
 
     assert(
-      arraysAreEqual(passportData.eContent.slice(72, 72 + 32), concatenatedDataHashesHashDigest),
+      arraysAreEqual(passportData.eContent.slice(72, 72 + digestLength), concatenatedDataHashesHashDigest),
       'concatenatedDataHashesHashDigest is at the right place in passportData.eContent'
     )
 
     const reveal_bitmap = Array(88).fill('1');
 
-    const [messagePadded, messagePaddedLen] = sha256Pad(
+    const [messagePadded, messagePaddedLen] = shaPad(
+      signatureAlgorithm,
       new Uint8Array(passportData.dataGroupHashes),
       MAX_DATAHASHES_LEN
     );

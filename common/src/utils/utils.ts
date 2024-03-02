@@ -1,4 +1,6 @@
 import {sha256} from 'js-sha256';
+import {sha1} from 'js-sha1';
+import { assert } from './shaPad';
 
 export function formatMrz(mrz: string) {
   const mrzCharcodes = [...mrz].map(char => char.charCodeAt(0));
@@ -153,9 +155,14 @@ export function hexToDecimal(hex: string): string {
 }
 
 // hash logic here because the one in utils.ts only works with node
-export function hash(bytesArray: number[]) {
+export function hash(signatureAlgorithm : string, bytesArray: number[]) {
   let unsignedBytesArray = bytesArray.map(toUnsignedByte);
-  let hash = sha256(unsignedBytesArray);
+  assert(
+    signatureAlgorithm == 'SHA1withRSA' || signatureAlgorithm == 'SHA256withRSA', 
+    'Unsupported signature algorithm'
+  );
+  let hash = (signatureAlgorithm == 'SHA1withRSA' ) ? 
+    sha1(unsignedBytesArray) : sha256(unsignedBytesArray);
   return hexToSignedBytes(hash);
 }
 

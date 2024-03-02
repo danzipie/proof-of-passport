@@ -1,3 +1,4 @@
+import { assert } from "./shaPad";
 import { PassportData } from "./types";
 import { hash, assembleEContent, formatAndConcatenateDataHashes, formatMrz, hexToDecimal } from "./utils";
 import * as forge from 'node-forge';
@@ -33,15 +34,15 @@ const sampleDataHashes = [
 ]
 const sampleTimeOfSig = [49, 15, 23, 13, 49, 57, 49, 50, 49, 54, 49, 55, 50, 50, 51, 56, 90]
 
-export function genSampleData(): PassportData {
-  const mrzHash = hash(formatMrz(sampleMRZ));
+export function genSampleData(signatureAlgorithm : string): PassportData {
+  const mrzHash = hash(signatureAlgorithm, formatMrz(sampleMRZ));
   sampleDataHashes.unshift([1, mrzHash]);
   const concatenatedDataHashes = formatAndConcatenateDataHashes(
     mrzHash,
     sampleDataHashes as [number, number[]][],
   );
   const eContent = assembleEContent(
-    hash(concatenatedDataHashes),
+    hash(signatureAlgorithm, concatenatedDataHashes),
     sampleTimeOfSig,
   );
 
@@ -49,7 +50,12 @@ export function genSampleData(): PassportData {
   const privKey = rsa.generateKeyPair({bits: 2048}).privateKey;
   const modulus = privKey.n.toString(16);
 
-  const md = forge.md.sha256.create();
+  assert(
+    (signatureAlgorithm == 'SHA256withRSA') || (signatureAlgorithm == 'SHA1withRSA'),
+    'Unsupported signature algorithm'
+    );
+  const md = (signatureAlgorithm == 'SHA256withRSA') ?
+    forge.md.sha256.create() : forge.md.sha1.create();
   md.update(forge.util.binary.raw.encode(new Uint8Array(eContent)));
 
   const signature = privKey.sign(md)
@@ -57,7 +63,7 @@ export function genSampleData(): PassportData {
   
   return {
     mrz: sampleMRZ,
-    signatureAlgorithm: 'SHA256withRSA', // sha256WithRSAEncryption
+    signatureAlgorithm: signatureAlgorithm,
     pubKey: {
       modulus: hexToDecimal(modulus),
     },
@@ -68,13 +74,13 @@ export function genSampleData(): PassportData {
   }
 }
 
-export function getPassportData(): PassportData {
-  const passportDataPath = path.join(__dirname, '../../inputs/passportData.json');
+export function getPassportData(signatureAlgorithm): PassportData {
+  const passportDataPath = path.join(__dirname, '../../inputs/passportData_' + signatureAlgorithm + '.json');
 
   if (fs.existsSync(passportDataPath)) {
     return require(passportDataPath);
   } else {
-    const sampleData = genSampleData();
+    const sampleData = genSampleData(signatureAlgorithm);
     const inputsDir = path.join(__dirname, '../../inputs/');
 
     if (!fs.existsSync(inputsDir)) {
